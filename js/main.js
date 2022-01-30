@@ -1,4 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
+
+    const colorCorrect = "rgb(83, 141, 78)";
+    const colorPresent = "rgb(181, 159, 59)";
+    const colorWrong = "rgb(58, 58, 60)";
+
     let vocab = [];
     let keyWord = '';
     let guessedWords = [
@@ -105,20 +110,38 @@ document.addEventListener("DOMContentLoaded", () => {
         return vocab.includes(word.toLowerCase());
     }
 
+    function removeItem(list, value) {
+        var index = list.indexOf(value);
+        if (index > -1) {
+            return list.splice(index, 1);
+        } else {
+            return list;
+        }
+    }
+
     function getLetterColors(word) {
-        const colorCorrect = "rgb(83, 141, 78)";
-        const colorPresent = "rgb(181, 159, 59)";
-        const colorWrong = "rgb(58, 58, 60)";
 
-        let colors = [];
+        let colors = [colorWrong, colorWrong, colorWrong, colorWrong, colorWrong];
 
+        // here we store letters that were not guessed yet
+        // every time we have a green guess - it is removed
+        // need to make sure we don't count letter twice
+        let notGuessedletters = keyWord.split('');
+
+        // first get all greens (to prevent counting twice)
+        // remove everytime we have a match
         for (let i = 0; i < keyWord.length; i++) {
             if (word[i] === keyWord[i]) {
-                colors.push(colorCorrect);
-            } else if (keyWord.includes(word[i])) {
-                colors.push(colorPresent);
-            } else {
-                colors.push(colorWrong);
+                colors[i] = colorCorrect;
+                removeItem(notGuessedletters, word[i]);
+            }
+        }
+
+        // now get all yellows
+        for (let i = 0; i < keyWord.length; i++) {
+            if (notGuessedletters.includes(word[i])) {
+                colors[i] = colorPresent;
+                removeItem(notGuessedletters, word[i]);
             }
         }
         return colors;
@@ -221,11 +244,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // finish game or continue
         setTimeout(() => {
-            // set colors on keyboard
-            currentWordArray.forEach((letter, index) => {
-                keyLookup[letter].style.background = colors[index];
-                keyLookup[letter].style.borderColor = colors[index];
-            });
+            // set colors on keyboard 
+            // need to do it in acsending order: gray, yellow, green
+            for (const color of [colorWrong, colorPresent, colorCorrect]) {
+                currentWordArray.forEach((letter, index) => {
+                    if (colors[index] == color) {
+                        keyLookup[letter].style.background = colors[index];
+                        keyLookup[letter].style.borderColor = colors[index];
+                    }
+                });
+            }
 
             if (word === keyWord) {
                 gameWon();
