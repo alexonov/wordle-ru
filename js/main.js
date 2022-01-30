@@ -5,10 +5,11 @@ document.addEventListener("DOMContentLoaded", () => {
         []
     ];
     let keys = [];
+    let keyLookup = {};
 
     var nextSquareIndex = 1;
 
-    const resetScene = async () => {
+    const createScene = async () => {
         guessedWords = [
             []
         ];
@@ -19,12 +20,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         keyWord = generateNewWord();
 
-        console.log(`pss.. the word in ${keyWord}`);
+        // console.log(`pss.. the word in ${keyWord}`);
 
         createSquares();
 
         // getting keys
         keys = document.querySelectorAll('.keyboard-row button');
+
+        // create key lookup
+        for (const key of keys) {
+            let letter = key.getAttribute("data-key");
+            keyLookup[letter] = key;
+        }
 
         // assigning onclick to keys
         for (let i = 0; i < keys.length; i++) {
@@ -48,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     }
 
-    resetScene();
+    createScene();
 
     async function loadFile(url) {
         try {
@@ -100,7 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function getLetterColors(word) {
         const colorCorrect = "rgb(83, 141, 78)";
-        const colorPresent = "rbg(181, 159, 59)";
+        const colorPresent = "rgb(181, 159, 59)";
         const colorWrong = "rgb(58, 58, 60)";
 
         let colors = [];
@@ -192,7 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let colors = getLetterColors(word);
 
         // milisecs
-        const revealInterval = 600;
+        const revealInterval = 400;
 
         // reveal squares
         currentWordArray.forEach((letter, index) => {
@@ -202,7 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const squareId = (guessedWords.length - 1) * 5 + index + 1;
                 const squareElement = document.getElementById(String(squareId));
 
-                console.log(`tile ${squareId} with letter ${letter} gets color ${squareColor}`);
+                // console.log(`tile ${squareId} with letter ${letter} gets color ${squareColor}`);
 
                 squareElement.classList.add("animate__flipInX");
 
@@ -214,6 +221,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // finish game or continue
         setTimeout(() => {
+            // set colors on keyboard
+            currentWordArray.forEach((letter, index) => {
+                keyLookup[letter].style.background = colors[index];
+                keyLookup[letter].style.borderColor = colors[index];
+            });
+
             if (word === keyWord) {
                 gameWon();
             } else if (guessedWords.length === 6) {
