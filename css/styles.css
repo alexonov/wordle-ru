@@ -97,7 +97,7 @@ header {
     height: 58px;
     max-height: 10vw;
     cursor: pointer;
-    background-color: rgb(129, 131, 132);
+    background-color: rgb(128, 131, 132);
     color: rgb(215, 218, 220);
     flex-grow: 1;
     text-transform: uppercase;
