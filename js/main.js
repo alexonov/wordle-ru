@@ -1,45 +1,97 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const keyWord = 'балда';
-
-    const vocab = ['балда', 'ааааа', 'ббббб', 'ддддд'];
-
-    createSquares();
-
+    let vocab = [];
+    let keyWord = '';
     let guessedWords = [
         []
     ];
-    let keys = document.querySelectorAll('.keyboard-row button');
+    let keys = [];
 
     var nextSquareIndex = 1;
 
-    function loadFile(url) {
-        console.log(url);
-        fetch(url)
-            .then(response => response.text())
-            .then((data) => {
-                console.log(data)
-            })
+    const resetScene = async () => {
+        guessedWords = [
+            []
+        ];
+        nextSquareIndex = 1;
+
+        // loading vocab
+        await loadFile('https://alexonov.github.io/wordle-ru/assets/words_5_letters.txt');
+
+        keyWord = generateNewWord();
+
+        console.log(`pss.. the word in ${keyWord}`);
+
+        createSquares();
+
+        // getting keys
+        keys = document.querySelectorAll('.keyboard-row button');
+
+        // assigning onclick to keys
+        for (let i = 0; i < keys.length; i++) {
+            keys[i].onclick = ({
+                target
+            }) => {
+
+                const letter = target.getAttribute("data-key");
+
+                if (letter === 'enter') {
+                    submitWord();
+                    return;
+                } else if (letter === 'del') {
+                    deleteLetter();
+                    return;
+                }
+                updateGuessedWords(letter);
+            };
+
+        }
+
     }
 
-    loadFile('https://alexonov.github.io/balda/assets/vocab.txt');
+    resetScene();
 
-    for (let i = 0; i < keys.length; i++) {
-        keys[i].onclick = ({
-            target
-        }) => {
+    async function loadFile(url) {
+        try {
+            const response = await fetch(url);
+            const data = await response.text();
+            vocab = data.split('\n');
+        } catch (err) {
+            console.error(err);
+        }
+    }
 
-            const letter = target.getAttribute("data-key");
+    // function loadFile(url) {
+    //     fetch(url)
+    //         .then(response => response.text())
+    //         .then((data) => {
+    //             vocab = data.split('\n');
+    //             console.log(vocab);
+    //         })
+    // }
 
-            if (letter === 'enter') {
-                submitWord();
-                return;
-            } else if (letter === 'del') {
-                deleteLetter();
-                return;
-            }
-            updateGuessedWords(letter);
-        };
+    function seedRandGenerator(a) {
+        console.log('here');
 
+        return function () {
+            var t = a += 0x6D2B79F5;
+            t = Math.imul(t ^ t >>> 15, t | 1);
+            t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+            return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        }
+    }
+
+    function generateNewDailyWord() {
+        // chose new daily starting word
+        let date = new Date();
+        let seed = [date.getYear(), date.getMonth(), date.getDate()].join('');
+        let rand = seedRandGenerator(parseInt(seed));
+        return vocab[Math.floor(rand() * vocab.length)];
+    }
+
+    function generateNewWord() {
+        // chose new starting word
+        let randomIndex = Math.floor(Math.random() * vocab.length);
+        return vocab[randomIndex];
     }
 
     function isValidWord(word) {
