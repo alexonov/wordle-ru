@@ -33,7 +33,7 @@ header {
 
 .title {
     color: gainsboro;
-    font-size: 2.5rem;
+    font-size: 1.5rem;
     font-weight: bold;
     margin: 0.4rem 0 0.4rem 0;
     text-align: center;
@@ -85,7 +85,10 @@ header {
     display: flex;
     justify-content: center;
     width: 100%;
-    margin: 0 auto 8px;
+    margin-right: 8px;
+    margin-left: 4px;
+    margin-top: auto;
+    margin-bottom: 8px;
     touch-action: manipulation;
 }
 
@@ -96,12 +99,14 @@ header {
     padding: 0;
     height: 58px;
     max-height: 10vw;
+    max-width: 7vw;
     cursor: pointer;
     background-color: rgb(128, 131, 132);
     color: rgb(215, 218, 220);
     flex-grow: 1;
     text-transform: uppercase;
     margin-right: 6px;
+    /* margin-left: 3px; */
     border-radius: 4px;
     user-select: none;
     font-size: 3vh;
@@ -110,6 +115,7 @@ header {
 
 .keyboard-row button.wide-button {
     flex-grow: 1.5;
+    max-width: 40%;
 }
 
 .space-half {
