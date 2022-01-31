@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
         await loadFile('https://alexonov.github.io/wordle-ru/assets/words_5_letters.txt');
 
         keyWord = generateNewWord();
+        // keyWord = 'козон';
 
         // console.log(`pss.. the word in ${keyWord}`);
 
@@ -110,8 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return vocab.includes(word.toLowerCase());
     }
 
-    function removeItem(list, value) {
-        var index = list.indexOf(value);
+    function removeItem(list, index) {
         if (index > -1) {
             return list.splice(index, 1);
         } else {
@@ -127,23 +127,28 @@ document.addEventListener("DOMContentLoaded", () => {
         // every time we have a green guess - it is removed
         // need to make sure we don't count letter twice
         let notGuessedletters = keyWord.split('');
+        let remainingGuesses = word.split('');
 
         // first get all greens (to prevent counting twice)
         // remove everytime we have a match
         for (let i = 0; i < keyWord.length; i++) {
             if (word[i] === keyWord[i]) {
                 colors[i] = colorCorrect;
-                removeItem(notGuessedletters, word[i]);
+                notGuessedletters = removeItem(notGuessedletters, i);
+                remainingGuesses = removeItem(remainingGuesses, i);
             }
         }
+        console.log(notGuessedletters.toString())
 
         // now get all yellows
-        for (let i = 0; i < keyWord.length; i++) {
-            if (notGuessedletters.includes(word[i])) {
+        for (let i = 0; i < remainingGuesses.length; i++) {
+            if (notGuessedletters.includes(remainingGuesses[i])) {
                 colors[i] = colorPresent;
-                removeItem(notGuessedletters, word[i]);
+                notGuessedletters = removeItem(notGuessedletters,i);
             }
         }
+        console.log(notGuessedletters.toString())
+
         return colors;
     }
 
