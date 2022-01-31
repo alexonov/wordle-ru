@@ -23,8 +23,8 @@ document.addEventListener("DOMContentLoaded", () => {
         // loading vocab
         await loadFile('https://alexonov.github.io/wordle-ru/assets/words_5_letters.txt');
 
-        // keyWord = generateNewWord();
-        keyWord = 'такси';
+        keyWord = generateNewWord();
+        // keyWord = 'такси';
 
         // console.log(`pss.. the word in ${keyWord}`);
 
@@ -128,20 +128,28 @@ document.addEventListener("DOMContentLoaded", () => {
         let remainingIndexes = [];
         for (let i = 0; i < notGuessedletters.length; i++) {
             remainingIndexes.push(i);
-            
+
         }
 
+        let guessIndexes = [];
+
+        console.log(notGuessedletters)
+
         // first get all greens (to prevent counting twice)
-        // everytime we match - 
-        // 1. remove from letters that are still to be guessed
-        // 2. remove from indexes of our guess
         for (let i = 0; i < keyWord.length; i++) {
             if (word[i] === keyWord[i]) {
                 colors[i] = colorCorrect;
-                removeItem(notGuessedletters, i);
-                removeItem(remainingIndexes, i);
+                guessIndexes.push(i);
             }
         }
+
+        // remove guesses lertters
+        for (var i = guessIndexes.length - 1; i >= 0; i--) {
+            notGuessedletters.splice(guessIndexes[i], 1);
+            remainingIndexes.splice(guessIndexes[i], 1);
+        }
+
+        console.log(notGuessedletters)
 
         // now get all yellows
         // go through our guess and -
@@ -154,6 +162,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 removeItem(notGuessedletters, index);
             }
         }
+
+        console.log(notGuessedletters)
 
         return colors;
     }
