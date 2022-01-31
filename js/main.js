@@ -23,8 +23,8 @@ document.addEventListener("DOMContentLoaded", () => {
         // loading vocab
         await loadFile('https://alexonov.github.io/wordle-ru/assets/words_5_letters.txt');
 
-        keyWord = generateNewWord();
-        // keyWord = 'козон';
+        // keyWord = generateNewWord();
+        keyWord = 'такси';
 
         // console.log(`pss.. the word in ${keyWord}`);
 
@@ -113,9 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function removeItem(list, index) {
         if (index > -1) {
-            return list.splice(index, 1);
-        } else {
-            return list;
+            list.splice(index, 1);
         }
     }
 
@@ -127,27 +125,35 @@ document.addEventListener("DOMContentLoaded", () => {
         // every time we have a green guess - it is removed
         // need to make sure we don't count letter twice
         let notGuessedletters = keyWord.split('');
-        let remainingGuesses = word.split('');
+        let remainingIndexes = [];
+        for (let i = 0; i < notGuessedletters.length; i++) {
+            remainingIndexes.push(i);
+            
+        }
 
         // first get all greens (to prevent counting twice)
-        // remove everytime we have a match
+        // everytime we match - 
+        // 1. remove from letters that are still to be guessed
+        // 2. remove from indexes of our guess
         for (let i = 0; i < keyWord.length; i++) {
             if (word[i] === keyWord[i]) {
                 colors[i] = colorCorrect;
-                notGuessedletters = removeItem(notGuessedletters, i);
-                remainingGuesses = removeItem(remainingGuesses, i);
+                removeItem(notGuessedletters, i);
+                removeItem(remainingIndexes, i);
             }
         }
-        console.log(notGuessedletters.toString())
 
         // now get all yellows
-        for (let i = 0; i < remainingGuesses.length; i++) {
-            if (notGuessedletters.includes(remainingGuesses[i])) {
+        // go through our guess and -
+        // 1. check if we already guessed the letter
+        // 2. check if that letter matched the remaining unguessed letters
+        for (let i = 0; i < word.length; i++) {
+            if (remainingIndexes.includes(i) && notGuessedletters.includes(word[i])) {
                 colors[i] = colorPresent;
-                notGuessedletters = removeItem(notGuessedletters,i);
+                let index = notGuessedletters.indexOf(word[i]);
+                removeItem(notGuessedletters, index);
             }
         }
-        console.log(notGuessedletters.toString())
 
         return colors;
     }
