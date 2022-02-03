@@ -2,31 +2,59 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const colorCorrect = "rgb(83, 141, 78)";
     const colorPresent = "rgb(181, 159, 59)";
-    const colorWrong = "rgb(58, 58, 60)";
+    const colorAbsent = "rgb(58, 58, 60)";
+
+    const colorFilled = "rgb(86, 87, 88)";
+    const colorEmpty = "rgb(58, 58, 60)";
+
+    // milisecs
+    const revealInterval = 300;
+
+    const letterStates = {
+        absent: 0,
+        present: 1,
+        correct: 2
+    };
+
+    const stateColors = {
+        [letterStates.absent]: colorAbsent,
+        [letterStates.present]: colorPresent,
+        [letterStates.correct]: colorCorrect
+    };
+
+    const gameStates = {
+        progress: 'in_progress',
+        won: 'won',
+        lost: 'lost'
+    }
+
+    // as per https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises#creating_a_promise_around_an_old_callback_api
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    // wait(0).then(()=>console.log('first')).then(() => wait(1000)).then(()=>console.log('waited'))
 
     let vocab = [];
     let keyWord = '';
-    let guessedWords = [
-        []
-    ];
+    let guessedWordsArray = [];
+    let guessedStateArray = [];
+    let currentWordArray = [];
     let keys = [];
-    let keyLookup = {};
+    let keyLookup = new Map();
+    let guessedKeysMap = new Map();
+    let gameCurrentState = '';
 
-    var nextSquareIndex = 1;
 
     const createScene = async () => {
-        guessedWords = [
-            []
-        ];
-        nextSquareIndex = 1;
+        guessedWordsArray = [];
+        currentWordArray = [];
 
         // loading vocab
         await loadFile('https://alexonov.github.io/wordle-ru/assets/words_5_letters.txt');
 
-        keyWord = generateNewWord();
+        keyWord = generateNewDailyWord();
         // keyWord = 'такси';
 
-        // console.log(`pss.. the word in ${keyWord}`);
+        console.log(`pss.. the word in ${keyWord}`);
 
         createSquares();
 
@@ -36,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // create key lookup
         for (const key of keys) {
             let letter = key.getAttribute("data-key");
-            keyLookup[letter] = key;
+            keyLookup.set(letter, key);
         }
 
         // assigning onclick to keys
@@ -47,21 +75,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 const letter = target.getAttribute("data-key");
 
-                if (letter === 'enter') {
-                    submitWord();
-                    return;
-                } else if (letter === 'del') {
-                    deleteLetter();
-                    return;
-                }
-                updateGuessedWords(letter);
+                handleNewLetter(letter);
             };
 
         }
 
+        gameCurrentState = gameStates.progress;
+
+        loadGame();
     }
 
     createScene();
+    window.addEventListener('keydown', handleKeyDown);
+
+    function createSquares() {
+        const gameBoard = document.getElementById("board");
+
+        for (let index = 0; index < 30; index++) {
+            let square = document.createElement("div");
+            square.classList.add("square");
+            square.classList.add("animate__animated");
+            square.setAttribute("id", index + 1);
+            gameBoard.appendChild(square);
+
+        }
+    }
+
+    function removeItem(list, index) {
+        if (index > -1) {
+            list.splice(index, 1);
+        }
+    }
+
+    // =============================================
+    // vocabulary
+    // =============================================
 
     async function loadFile(url) {
         try {
@@ -111,15 +159,48 @@ document.addEventListener("DOMContentLoaded", () => {
         return vocab.includes(word.toLowerCase());
     }
 
-    function removeItem(list, index) {
-        if (index > -1) {
-            list.splice(index, 1);
+    // =====================================================
+    // events
+    // =====================================================
+
+    function handleNewLetter(letter) {
+        if (letter === 'enter') {
+            submitWord();
+        } else if (letter === 'backspace') {
+            deleteLetter();
+        } else {
+            updateCurrentWord(letter);
         }
     }
 
-    function getLetterColors(word) {
+    function handleKeyDown(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) {
+            return;
+        }
 
-        let colors = [colorWrong, colorWrong, colorWrong, colorWrong, colorWrong];
+        const letter = e.key.toLowerCase();
+        const regex = /[а-яёй]/i;
+
+        if (regex.test(letter) || letter === 'enter' || letter === 'backspace') {
+            handleNewLetter(letter);
+
+        };
+
+    }
+
+    // ===================================================
+    // guessing logic
+    // ===================================================
+
+    function getLetterStates(word) {
+
+        let states = [
+            letterStates.absent,
+            letterStates.absent,
+            letterStates.absent,
+            letterStates.absent,
+            letterStates.absent
+        ];
 
         // here we store letters that were not guessed yet
         // every time we have a green guess - it is removed
@@ -133,12 +214,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         let guessIndexes = [];
 
-        console.log(notGuessedletters)
-
         // first get all greens (to prevent counting twice)
         for (let i = 0; i < keyWord.length; i++) {
             if (word[i] === keyWord[i]) {
-                colors[i] = colorCorrect;
+                states[i] = letterStates.correct;
                 guessIndexes.push(i);
             }
         }
@@ -149,185 +228,228 @@ document.addEventListener("DOMContentLoaded", () => {
             remainingIndexes.splice(guessIndexes[i], 1);
         }
 
-        console.log(notGuessedletters)
-
         // now get all yellows
         // go through our guess and -
         // 1. check if we already guessed the letter
         // 2. check if that letter matched the remaining unguessed letters
         for (let i = 0; i < word.length; i++) {
             if (remainingIndexes.includes(i) && notGuessedletters.includes(word[i])) {
-                colors[i] = colorPresent;
+                states[i] = letterStates.present;
                 let index = notGuessedletters.indexOf(word[i]);
                 removeItem(notGuessedletters, index);
             }
         }
 
-        console.log(notGuessedletters)
-
-        return colors;
-    }
-
-    function gameWon() {
-        let currentWordArray = getCurrentWordArray();
-
-        let bounceInterval = 100;
-
-        currentWordArray.forEach((letter, index) => {
-            setTimeout(() => {
-                const squareId = (guessedWords.length - 1) * 5 + index + 1;
-                const squareElement = document.getElementById(String(squareId));
-                squareElement.classList.remove("animate__flipInX");
-                squareElement.classList.add("animate__bounce");
-            }, index * bounceInterval);
-        })
-
-        setTimeout(() => {
-            window.alert('Ура мол!');
-        }, bounceInterval * 10)
-    }
-
-    function gameLost() {
-        window.alert(`Все пропало! (слово было: ${keyWord.toUpperCase()})`);
-    }
-
-    function shakeSquares() {
-        let currentWordArray = getCurrentWordArray();
-
-        currentWordArray.forEach((letter, index) => {
-            const squareId = (guessedWords.length - 1) * 5 + index + 1;
-            const squareElement = document.getElementById(String(squareId));
-            squareElement.classList.add("animate__headShake");
-        })
-    }
-
-    function resetAnimationClass() {
-        let currentWordArray = getCurrentWordArray();
-
-        currentWordArray.forEach((letter, index) => {
-            const squareId = (guessedWords.length - 1) * 5 + index + 1;
-            const squareElement = document.getElementById(String(squareId));
-            squareElement.classList.remove("animate__headShake");
-        })
+        return states;
     }
 
     function submitWord() {
 
-        let currentWordArray = getCurrentWordArray();
         let word = currentWordArray.join('');
 
-        // if too short
-        if (word.length !== 5) {
+        // if too short or if not a word
+        if (word.length !== 5 || !isValidWord(word)) {
             shakeSquares();
-            setTimeout(() => {
-                window.alert('Слово должно состоять из пяти букв мол');
-            }, 100)
-            setTimeout(() => {
-                resetAnimationClass();
-            }, 500)
             return;
-
-            // if not a word
-        } else if (!isValidWord(word)) {
-            shakeSquares();
-            setTimeout(() => {
-                window.alert('Такого слова мол не знаю');
-            }, 100)
-            setTimeout(() => {
-                resetAnimationClass();
-            }, 500)
-            return;
-
         }
 
-        let colors = getLetterColors(word);
+        guessedWordsArray.push(currentWordArray);
 
-        // milisecs
-        const revealInterval = 400;
+        let wordStates = getLetterStates(word);
+        guessedStateArray.push(wordStates);
+
+        // as per https://stackoverflow.com/questions/44955463/creating-a-promise-chain-in-a-for-loop
+        let chain = wait(0);
 
         // reveal squares
-        currentWordArray.forEach((letter, index) => {
-            setTimeout(() => {
-
-                const squareColor = colors[index];
-                const squareId = (guessedWords.length - 1) * 5 + index + 1;
-                const squareElement = document.getElementById(String(squareId));
-
-                // console.log(`tile ${squareId} with letter ${letter} gets color ${squareColor}`);
-
-                squareElement.classList.add("animate__flipInX");
-
-                squareElement.style.background = squareColor;
-                squareElement.style.borderColor = squareColor;
-
-            }, revealInterval * index);
-        })
-
-        // finish game or continue
-        setTimeout(() => {
-            // set colors on keyboard 
-            // need to do it in acsending order: gray, yellow, green
-            for (const color of [colorWrong, colorPresent, colorCorrect]) {
-                currentWordArray.forEach((letter, index) => {
-                    if (colors[index] == color) {
-                        keyLookup[letter].style.background = colors[index];
-                        keyLookup[letter].style.borderColor = colors[index];
-                    }
-                });
-            }
-
-            if (word === keyWord) {
-                gameWon();
-            } else if (guessedWords.length === 6) {
-                gameLost();
-            } else {
-                guessedWords.push([]);
-            }
-        }, revealInterval * 5)
-
-    }
-
-    function deleteLetter() {
-        let currentWordArray = getCurrentWordArray();
-        if (currentWordArray && currentWordArray.length > 0) {
-            currentWordArray.pop();
-
-            const currentSquareElement = document.getElementById(String(nextSquareIndex - 1));
-            currentSquareElement.textContent = '';
-
-            nextSquareIndex -= 1;
+        for (let i = 0; i < currentWordArray.length; i++) {
+            chain = chain.then(() => {
+                    const id = (guessedWordsArray.length - 1) * 5 + i + 1;
+                    const state = guessedStateArray[guessedStateArray.length - 1][i];
+                    const color = stateColors[state];
+                    revealSquare(id, color)
+                })
+                .then(() => wait(revealInterval))
         }
+
+        chain = chain.then(() => wait(revealInterval * 2))
+            .then(() => {
+                guessedWordsArray[guessedWordsArray.length - 1].forEach((letter, index) => {
+                    const oldState = guessedKeysMap.get(letter) || letterStates.absent;
+                    guessedKeysMap.set(letter, Math.max(oldState, wordStates[index]))
+                });
+
+                updateKeyboard();
+
+                if (word === keyWord) {
+                    gameWon();
+                } else if (guessedWordsArray.length === 6) {
+                    gameLost();
+                }
+
+                saveGame();
+
+            })
+
+        currentWordArray = []
+
     }
 
-    function getCurrentWordArray() {
-        const numberOfGuessedWords = guessedWords.length;
-        return guessedWords[numberOfGuessedWords - 1];
+    function updateKeyboard() {
+        guessedKeysMap.forEach((state, letter) => {
+            keyLookup.get(letter).style.background = stateColors[state];
+            keyLookup.get(letter).style.borderColor = stateColors[state];
+        })
     }
 
-    function updateGuessedWords(letter) {
-        const currentWordArray = getCurrentWordArray();
+    // ==============================================
+    // game state
+    // ==============================================
+
+    function gameWon() {
+        let bounceInterval = 100;
+
+        gameCurrentState = gameStates.won;
+
+        chain = wait(0);
+        for (let i = 0; i < keyWord.length; i++) {
+            chain = chain.then(() => bounnceLetter(i))
+                .then(() => wait(bounceInterval))
+        }
+
+        // setTimeout(() => {
+        //     window.alert('Ура мол!');
+        // }, bounceInterval * 10)
+    }
+
+    function gameLost() {
+        gameCurrentState = gameStates.lost;
+        window.alert(`Все пропало! (слово было: ${keyWord.toUpperCase()})`);
+    }
+
+
+
+    // ==============================================
+    // square behavior
+    // ==============================================
+
+    function updateCurrentWord(letter) {
 
         if (currentWordArray && currentWordArray.length < 5) {
             currentWordArray.push(letter);
 
+            const index = guessedWordsArray.length * 5 + currentWordArray.length
 
-            const nextSquareElement = document.getElementById(String(nextSquareIndex));
+            const nextSquareElement = document.getElementById(String(index));
+
+            nextSquareElement.style.borderColor = colorFilled;
+            animateCSS(nextSquareElement, 'pulse');
+
             nextSquareElement.textContent = letter;
-
-            nextSquareIndex += 1;
         }
     }
 
-    function createSquares() {
-        const gameBoard = document.getElementById("board");
-
-        for (let index = 0; index < 30; index++) {
-            let square = document.createElement("div");
-            square.classList.add("square");
-            square.classList.add("animate__animated");
-            square.setAttribute("id", index + 1);
-            gameBoard.appendChild(square);
-
+    function deleteLetter() {
+        if (currentWordArray && currentWordArray.length > 0) {
+            currentWordArray.pop();
+            const index = guessedWordsArray.length * 5 + (currentWordArray.length + 1)
+            const currentSquareElement = document.getElementById(String(index));
+            currentSquareElement.textContent = '';
+            currentSquareElement.style.borderColor = colorEmpty;
         }
     }
+
+    function shakeSquares() {
+        currentWordArray.forEach((letter, index) => {
+            const squareId = guessedWordsArray.length * 5 + index + 1;
+            const squareElement = document.getElementById(String(squareId));
+            // squareElement.classList.add("animate__headShake");
+            animateCSS(squareElement, 'headShake');
+        })
+    }
+
+    function revealSquare(id, color, letter=null) {
+        // const squareId = (guessedWordsArray.length - 1) * 5 + index + 1;
+        const squareElement = document.getElementById(String(id));
+        animateCSS(squareElement, 'flipInX');
+        squareElement.style.background = color;
+        squareElement.style.borderColor = color;
+        if(letter!==null) {
+            squareElement.textContent = letter;
+        }
+    }
+
+    function bounnceLetter(i) {
+        const squareId = (guessedWordsArray.length - 1) * 5 + i + 1;
+        const squareElement = document.getElementById(String(squareId));
+        animateCSS(squareElement, 'bounce');
+    }
+
+    const animateCSS = (node, animation, prefix = 'animate__') =>
+        // We create a Promise and return it
+        new Promise((resolve, reject) => {
+            const animationName = `${prefix}${animation}`;
+            // const node = document.querySelector(element);
+
+            node.classList.add(`${prefix}animated`, animationName);
+
+            // When the animation ends, we clean the classes and resolve the Promise
+            function handleAnimationEnd(event) {
+                event.stopPropagation();
+                node.classList.remove(`${prefix}animated`, animationName);
+                resolve('Animation ended');
+            }
+
+            node.addEventListener('animationend', handleAnimationEnd, {
+                once: true
+            });
+        });
+
+
+    // ==============================================
+    // save load
+    // ==============================================
+
+    function restoreState(data) {
+        currentWordArray = [];
+        guessedStateArray = data.guessedStateArray;
+        keyWord = data.keyWord;
+        gameCurrentState = data.gameCurrentState;
+        guessedKeysMap = new Map(data.guessedKeysMapArray);
+        guessedWordsArray = data.guessedWordsArray;
+
+        guessedWordsArray.forEach((word, i) => {
+            word.forEach((letter, j) => {
+                const squareId = i * 5 + j + 1
+                const color = stateColors[guessedStateArray[i][j]];
+                revealSquare(squareId, color, letter);
+            })
+        })
+        updateKeyboard();
+    };
+
+    function loadGame() {
+        let data;
+        try {
+            data = JSON.parse(localStorage.getItem('data'));
+        } catch {}
+
+        if (data != null && data.keyWord === keyWord) {
+            restoreState(data);
+        }
+    };
+
+    function saveGame() {
+        let guessedKeysMapArray = [...guessedKeysMap]
+        let data = JSON.stringify({
+            guessedWordsArray,
+            guessedStateArray,
+            keyWord,
+            gameCurrentState,
+            guessedKeysMapArray
+        })
+        try {
+            localStorage.setItem('data', data)
+        } catch {}
+    };
 })
