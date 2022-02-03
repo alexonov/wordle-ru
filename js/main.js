@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
         keyWord = generateNewDailyWord();
         // keyWord = 'такси';
 
-        console.log(`pss.. the word in ${keyWord}`);
+        // console.log(`pss.. the word in ${keyWord}`);
 
         createSquares();
 
