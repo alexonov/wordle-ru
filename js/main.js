@@ -88,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     createScene();
-    
+
     window.addEventListener('keydown', handleKeyDown);
 
     function syncButtons() {
@@ -115,7 +115,6 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 showSpoilers();
             }
-            spoilersShown = !spoilersShown;
         });
 
         const btnDict = document.getElementById("dict");
@@ -130,6 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
             })
         });
         resetKeyboard();
+        spoilersShown = !spoilersShown;
     }
 
     function showSpoilers() {
@@ -141,6 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
             })
         });
         updateKeyboard();
+        spoilersShown = !spoilersShown;
     }
 
     function createSquares() {
@@ -377,6 +378,8 @@ document.addEventListener("DOMContentLoaded", () => {
             chain = chain.then(() => bounnceLetter(i))
                 .then(() => wait(bounceInterval))
         }
+        chain = chain.then(() => wait(1000))
+            .then(() => hideSpoilers());
 
         // setTimeout(() => {
         //     window.alert('Ура мол!');
