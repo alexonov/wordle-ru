@@ -28,7 +28,19 @@ body {
 }
 
 header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     border-bottom: 1px solid rgb(58, 58, 60);
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+#result,
+#dict {
+  color: rgb(128, 131, 132);
+  font-size: 1.5rem;
+  cursor: pointer;
 }
 
 .title {
@@ -131,9 +143,9 @@ header {
 /* This only changes this particular animation duration */
 .animate__animated.animate__pulse {
     --animate-duration: 200ms;
-  }
+}
 
-#overlay{
+#overlay {
     position: fixed;
     top: 0;
     left: 0;

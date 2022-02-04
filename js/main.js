@@ -42,6 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let keyLookup = new Map();
     let guessedKeysMap = new Map();
     let gameCurrentState = '';
+    let spoilersShown = true;
 
 
     const createScene = async () => {
@@ -81,12 +82,66 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         gameCurrentState = gameStates.progress;
-
         loadGame();
+        innitButtons();
+        syncButtons();
     }
 
     createScene();
+    
     window.addEventListener('keydown', handleKeyDown);
+
+    function syncButtons() {
+        const btnResult = document.getElementById("result");
+        const btnDict = document.getElementById("dict");
+
+        if (gameCurrentState === gameStates.progress) {
+            btnResult.style.pointerEvents = 'none';
+            btnDict.style.pointerEvents = 'none'
+        } else {
+            btnResult.style.pointerEvents = 'all';
+            btnDict.style.pointerEvents = 'all'
+        }
+
+    }
+
+    function innitButtons() {
+        const btnResult = document.getElementById("result");
+
+        // When the user clicks on the button, show spoiler free display
+        btnResult.addEventListener("click", function () {
+            if (spoilersShown) {
+                hideSpoilers();
+            } else {
+                showSpoilers();
+            }
+            spoilersShown = !spoilersShown;
+        });
+
+        const btnDict = document.getElementById("dict");
+    }
+
+    function hideSpoilers() {
+        guessedWordsArray.forEach((word, i) => {
+            word.forEach((letter, j) => {
+                const squareId = i * 5 + j + 1
+                const color = stateColors[guessedStateArray[i][j]];
+                revealSquare(squareId, color, "");
+            })
+        });
+        resetKeyboard();
+    }
+
+    function showSpoilers() {
+        guessedWordsArray.forEach((word, i) => {
+            word.forEach((letter, j) => {
+                const squareId = i * 5 + j + 1
+                const color = stateColors[guessedStateArray[i][j]];
+                revealSquare(squareId, color, letter);
+            })
+        });
+        updateKeyboard();
+    }
 
     function createSquares() {
         const gameBoard = document.getElementById("board");
@@ -131,8 +186,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // }
 
     function seedRandGenerator(a) {
-        console.log('here');
-
         return function () {
             var t = a += 0x6D2B79F5;
             t = Math.imul(t ^ t >>> 15, t | 1);
@@ -288,6 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 saveGame();
+                syncButtons();
 
             })
 
@@ -300,6 +354,13 @@ document.addEventListener("DOMContentLoaded", () => {
             keyLookup.get(letter).style.background = stateColors[state];
             keyLookup.get(letter).style.borderColor = stateColors[state];
         })
+    }
+
+    function resetKeyboard() {
+        for (const key of keys) {
+            key.style.background = "rgb(128, 131, 132)";
+            key.style.borderColor = "rgb(128, 131, 132)";
+        }
     }
 
     // ==============================================
@@ -368,13 +429,13 @@ document.addEventListener("DOMContentLoaded", () => {
         })
     }
 
-    function revealSquare(id, color, letter=null) {
+    function revealSquare(id, color, letter = null) {
         // const squareId = (guessedWordsArray.length - 1) * 5 + index + 1;
         const squareElement = document.getElementById(String(id));
         animateCSS(squareElement, 'flipInX');
         squareElement.style.background = color;
         squareElement.style.borderColor = color;
-        if(letter!==null) {
+        if (letter !== null) {
             squareElement.textContent = letter;
         }
     }
