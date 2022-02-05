@@ -198,7 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function generateNewDailyWord() {
         // chose new daily starting word
         let date = new Date();
-        let seed = [date.getYear(), date.getMonth(), date.getDate()].join('');
+        let seed = [date.getYear(), date.getMonth(), date.getDate() * 2].join('');
         let rand = seedRandGenerator(parseInt(seed));
         return vocab[Math.floor(rand() * vocab.length)];
     }
@@ -388,7 +388,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function gameLost() {
         gameCurrentState = gameStates.lost;
-        window.alert(`Все пропало! (слово было: ${keyWord.toUpperCase()})`);
+        window.alert(`Все пропало!\n (слово было: ${keyWord.toUpperCase()})`);
     }
 
 
