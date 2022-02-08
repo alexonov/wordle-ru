@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
         currentWordArray = [];
 
         // loading vocab
-        await loadFile('https://alexonov.github.io/wordle-ru/assets/words_5_letters.txt');
+        await loadFile('https://alexonov.github.io/wordle-ru/assets/words_5_letters_easy.txt');
 
         keyWord = generateNewDailyWord();
         // keyWord = 'такси';
