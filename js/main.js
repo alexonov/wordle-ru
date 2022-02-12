@@ -33,7 +33,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // wait(0).then(()=>console.log('first')).then(() => wait(1000)).then(()=>console.log('waited'))
 
-    let vocab = [];
+    let vocabulary = [];
+    let targetWords = [];
     let keyWord = '';
     let guessedWordsArray = [];
     let guessedStateArray = [];
@@ -50,7 +51,8 @@ document.addEventListener("DOMContentLoaded", () => {
         currentWordArray = [];
 
         // loading vocab
-        await loadFile('https://alexonov.github.io/wordle-ru/assets/words_5_letters_easy.txt');
+        targetWords = await loadFile('https://alexonov.github.io/wordle-ru/assets/target_words.txt');
+        vocabulary = await loadFile('https://alexonov.github.io/wordle-ru/assets/words_5_letters.txt')
 
         keyWord = generateNewDailyWord();
         // keyWord = 'такси';
@@ -171,9 +173,10 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const response = await fetch(url);
             const data = await response.text();
-            vocab = data.split('\n');
+            return data.split('\n');
         } catch (err) {
             console.error(err);
+            return null;
         }
     }
 
@@ -200,17 +203,17 @@ document.addEventListener("DOMContentLoaded", () => {
         let date = new Date();
         let seed = [date.getYear(), date.getMonth(), date.getDate() * 2].join('');
         let rand = seedRandGenerator(parseInt(seed));
-        return vocab[Math.floor(rand() * vocab.length)];
+        return targetWords[Math.floor(rand() * targetWords.length)];
     }
 
     function generateNewWord() {
         // chose new starting word
-        let randomIndex = Math.floor(Math.random() * vocab.length);
-        return vocab[randomIndex];
+        let randomIndex = Math.floor(Math.random() * targetWords.length);
+        return targetWords[randomIndex];
     }
 
     function isValidWord(word) {
-        return vocab.includes(word.toLowerCase());
+        return vocabulary.includes(word.toLowerCase());
     }
 
     // =====================================================
