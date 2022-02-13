@@ -106,7 +106,7 @@ header {
     margin-right: 8px;
     margin-left: 4px;
     margin-top: auto;
-    margin-bottom: 8px;
+    margin-bottom: 3px;
     touch-action: manipulation;
 }
 
@@ -123,7 +123,7 @@ header {
     color: rgb(215, 218, 220);
     flex-grow: 1;
     text-transform: uppercase;
-    margin-right: 6px;
+    margin-right: 3px;
     /* margin-left: 3px; */
     border-radius: 4px;
     user-select: none;
@@ -134,6 +134,7 @@ header {
 .keyboard-row button.wide-button {
     flex-grow: 1.5;
     max-width: 40%;
+    user-select: none;
 }
 
 .space-half {
