@@ -8,6 +8,8 @@ body {
     height: 100%;
     font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
     background-color: black;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 #container {
@@ -76,11 +78,11 @@ header {
     border: 2px solid rgb(58, 58, 60);
     /* min-width: 60px;
     min-height: 60px; */
-    width: 6vh;
-    height: 6vh;
+    width: 8vh;
+    height: 8vh;
     max-width: 60px;
     max-height: 60px;
-    font-size: 4vh;
+    font-size: 6vh;
     font-weight: bold;
     color: gainsboro;
     text-transform: uppercase;
