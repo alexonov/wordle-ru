@@ -1,5 +1,4 @@
 document.addEventListener("DOMContentLoaded", () => {
-
     const colorCorrect = "rgb(83, 141, 78)";
     const colorPresent = "rgb(181, 159, 59)";
     const colorAbsent = "rgb(58, 58, 60)";
@@ -31,8 +30,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // as per https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises#creating_a_promise_around_an_old_callback_api
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-    // wait(0).then(()=>console.log('first')).then(() => wait(1000)).then(()=>console.log('waited'))
-
     let vocabulary = [];
     let targetWords = [];
     let keyWord = '';
@@ -44,7 +41,16 @@ document.addEventListener("DOMContentLoaded", () => {
     let guessedKeysMap = new Map();
     let gameCurrentState = '';
     let spoilersShown = true;
-
+    let statistics = {
+        gamesPlayed: 0,
+        gamesWon: 0,
+        currentStreak: 0,
+        maxStreak: 0,
+        lastPlayedDate: null,
+        guessDistribution: {
+            1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0
+        }
+    };
 
     const createScene = async () => {
         guessedWordsArray = [];
@@ -55,9 +61,6 @@ document.addEventListener("DOMContentLoaded", () => {
         vocabulary = await loadFile('https://alexonov.github.io/wordle-ru/assets/words_5_letters.txt')
 
         keyWord = generateNewDailyWord();
-        // keyWord = 'такси';
-
-        // console.log(`pss.. the word in ${keyWord}`);
 
         createSquares();
 
@@ -72,20 +75,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // assigning onclick to keys
         for (let i = 0; i < keys.length; i++) {
-            keys[i].onclick = ({
-                target
-            }) => {
-
+            keys[i].onclick = ({ target }) => {
                 const letter = target.getAttribute("data-key");
-
                 handleNewLetter(letter);
             };
-
         }
 
         gameCurrentState = gameStates.progress;
+        loadStatistics();
         loadGame();
-        innitButtons();
+        initButtons();
         syncButtons();
     }
 
@@ -97,20 +96,22 @@ document.addEventListener("DOMContentLoaded", () => {
         const btnResult = document.getElementById("result");
         const btnDict = document.getElementById("dict");
 
+        // Dictionary button is always clickable
+        btnDict.style.pointerEvents = 'all';
+
+        // Results button only clickable after game ends
         if (gameCurrentState === gameStates.progress) {
             btnResult.style.pointerEvents = 'none';
-            btnDict.style.pointerEvents = 'none'
         } else {
             btnResult.style.pointerEvents = 'all';
-            btnDict.style.pointerEvents = 'all'
         }
-
     }
 
-    function innitButtons() {
+    function initButtons() {
         const btnResult = document.getElementById("result");
+        const btnDict = document.getElementById("dict");
+        const closeButtons = document.querySelectorAll('.close-button');
 
-        // When the user clicks on the button, show spoiler free display
         btnResult.addEventListener("click", function () {
             if (spoilersShown) {
                 hideSpoilers();
@@ -119,7 +120,84 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        const btnDict = document.getElementById("dict");
+        closeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                document.getElementById('overlay').style.display = 'none';
+            });
+        });
+
+        btnDict.addEventListener("click", () => {
+            showStatistics();
+        });
+    }
+
+    function showStatistics() {
+        const modal = document.getElementById('overlay');
+        const modalTitle = document.querySelector('.modal-title');
+        const modalBody = document.querySelector('.modal-body');
+
+        modalTitle.textContent = 'Статистика';
+        const showShare = gameCurrentState !== gameStates.progress;
+
+        const winRate = Math.round((statistics.gamesWon / statistics.gamesPlayed) * 100) || 0;
+        const maxGuesses = Math.max(...Object.values(statistics.guessDistribution));
+
+        let statsHtml = `
+            <div class="statistics">
+                <div class="stat-row">
+                    <div class="stat-item">
+                        <div class="stat-number">${statistics.gamesPlayed}</div>
+                        <div class="stat-label">Сыграно</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${winRate}%</div>
+                        <div class="stat-label">Побед</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${statistics.currentStreak}</div>
+                        <div class="stat-label">Серия</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${statistics.maxStreak}</div>
+                        <div class="stat-label">Макс. серия</div>
+                    </div>
+                </div>
+                <div class="guess-distribution">
+                    <h3>Распределение попыток</h3>
+                    <div class="graph-container">
+                        ${Object.entries(statistics.guessDistribution).map(([guess, count]) => {
+            const percentage = maxGuesses > 0 ? Math.round((count / maxGuesses) * 100) : 0;
+            return `
+                                <div class="graph-row">
+                                    <div class="guess-label">${guess}</div>
+                                    <div class="graph-bar" style="width: ${percentage}%">
+                                        <span class="num-guesses">${count}</span>
+                                    </div>
+                                </div>
+                            `;
+        }).join('')}
+                    </div>
+                </div>
+                ${showShare ? `
+                    <div class="share-section">
+                        <div class="share-buttons">
+                            <button onclick="window.open('https://t.me/share/url?url=&text=${encodeURIComponent(generateShareText(gameCurrentState === gameStates.won))}')">
+                                Telegram
+                            </button>
+                            <button onclick="window.open('https://api.whatsapp.com/send?text=${encodeURIComponent(generateShareText(gameCurrentState === gameStates.won))}')">
+                                WhatsApp
+                            </button>
+                            <button onclick="navigator.clipboard.writeText('${generateShareText(gameCurrentState === gameStates.won)}').then(() => alert('Скопировано!'))">
+                                Копировать
+                            </button>
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+
+        modalBody.innerHTML = statsHtml;
+        modal.style.display = 'flex';
     }
 
     function hideSpoilers() {
@@ -148,14 +226,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function createSquares() {
         const gameBoard = document.getElementById("board");
-
         for (let index = 0; index < 30; index++) {
             let square = document.createElement("div");
             square.classList.add("square");
             square.classList.add("animate__animated");
             square.setAttribute("id", index + 1);
             gameBoard.appendChild(square);
-
         }
     }
 
@@ -164,10 +240,6 @@ document.addEventListener("DOMContentLoaded", () => {
             list.splice(index, 1);
         }
     }
-
-    // =============================================
-    // vocabulary
-    // =============================================
 
     async function loadFile(url) {
         try {
@@ -180,15 +252,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // function loadFile(url) {
-    //     fetch(url)
-    //         .then(response => response.text())
-    //         .then((data) => {
-    //             vocab = data.split('\n');
-    //             console.log(vocab);
-    //         })
-    // }
-
     function seedRandGenerator(a) {
         return function () {
             var t = a += 0x6D2B79F5;
@@ -199,26 +262,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function generateNewDailyWord() {
-        // chose new daily starting word
         let date = new Date();
         let seed = [date.getYear(), date.getMonth(), date.getDate() * 2].join('');
         let rand = seedRandGenerator(parseInt(seed));
         return targetWords[Math.floor(rand() * targetWords.length)];
     }
 
-    function generateNewWord() {
-        // chose new starting word
-        let randomIndex = Math.floor(Math.random() * targetWords.length);
-        return targetWords[randomIndex];
-    }
-
     function isValidWord(word) {
         return vocabulary.includes(word.toLowerCase());
     }
-
-    // =====================================================
-    // events
-    // =====================================================
 
     function handleNewLetter(letter) {
         if (letter === 'enter') {
@@ -240,17 +292,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (regex.test(letter) || letter === 'enter' || letter === 'backspace') {
             handleNewLetter(letter);
-
-        };
-
+        }
     }
 
-    // ===================================================
-    // guessing logic
-    // ===================================================
-
     function getLetterStates(word) {
-
         let states = [
             letterStates.absent,
             letterStates.absent,
@@ -259,19 +304,14 @@ document.addEventListener("DOMContentLoaded", () => {
             letterStates.absent
         ];
 
-        // here we store letters that were not guessed yet
-        // every time we have a green guess - it is removed
-        // need to make sure we don't count letter twice
         let notGuessedletters = keyWord.split('');
         let remainingIndexes = [];
         for (let i = 0; i < notGuessedletters.length; i++) {
             remainingIndexes.push(i);
-
         }
 
         let guessIndexes = [];
 
-        // first get all greens (to prevent counting twice)
         for (let i = 0; i < keyWord.length; i++) {
             if (word[i] === keyWord[i]) {
                 states[i] = letterStates.correct;
@@ -279,16 +319,11 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-        // remove guesses lertters
         for (var i = guessIndexes.length - 1; i >= 0; i--) {
             notGuessedletters.splice(guessIndexes[i], 1);
             remainingIndexes.splice(guessIndexes[i], 1);
         }
 
-        // now get all yellows
-        // go through our guess and -
-        // 1. check if we already guessed the letter
-        // 2. check if that letter matched the remaining unguessed letters
         for (let i = 0; i < word.length; i++) {
             if (remainingIndexes.includes(i) && notGuessedletters.includes(word[i])) {
                 states[i] = letterStates.present;
@@ -301,10 +336,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function submitWord() {
-
         let word = currentWordArray.join('');
 
-        // if too short or if not a word
         if (word.length !== 5 || !isValidWord(word)) {
             shakeSquares();
             return;
@@ -315,17 +348,15 @@ document.addEventListener("DOMContentLoaded", () => {
         let wordStates = getLetterStates(word);
         guessedStateArray.push(wordStates);
 
-        // as per https://stackoverflow.com/questions/44955463/creating-a-promise-chain-in-a-for-loop
         let chain = wait(0);
 
-        // reveal squares
         for (let i = 0; i < currentWordArray.length; i++) {
             chain = chain.then(() => {
-                    const id = (guessedWordsArray.length - 1) * 5 + i + 1;
-                    const state = guessedStateArray[guessedStateArray.length - 1][i];
-                    const color = stateColors[state];
-                    revealSquare(id, color)
-                })
+                const id = (guessedWordsArray.length - 1) * 5 + i + 1;
+                const state = guessedStateArray[guessedStateArray.length - 1][i];
+                const color = stateColors[state];
+                revealSquare(id, color)
+            })
                 .then(() => wait(revealInterval))
         }
 
@@ -346,11 +377,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 saveGame();
                 syncButtons();
-
-            })
+            });
 
         currentWordArray = []
-
     }
 
     function updateKeyboard() {
@@ -367,14 +396,25 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // ==============================================
-    // game state
-    // ==============================================
-
     function gameWon() {
         let bounceInterval = 100;
-
         gameCurrentState = gameStates.won;
+
+        // Update statistics
+        const today = new Date().toDateString();
+        const guessCount = guessedWordsArray.length;
+
+        statistics.gamesPlayed++;
+        statistics.gamesWon++;
+        statistics.guessDistribution[guessCount]++;
+
+        if (statistics.lastPlayedDate !== today) {
+            statistics.currentStreak++;
+            statistics.maxStreak = Math.max(statistics.currentStreak, statistics.maxStreak);
+        }
+        statistics.lastPlayedDate = today;
+
+        saveStatistics();
 
         chain = wait(0);
         for (let i = 0; i < keyWord.length; i++) {
@@ -382,36 +422,54 @@ document.addEventListener("DOMContentLoaded", () => {
                 .then(() => wait(bounceInterval))
         }
         chain = chain.then(() => wait(1000))
-            .then(() => hideSpoilers());
-
-        // setTimeout(() => {
-        //     window.alert('Ура мол!');
-        // }, bounceInterval * 10)
+            .then(() => {
+                hideSpoilers();
+                showGameEndModal(true);
+            });
     }
 
     function gameLost() {
         gameCurrentState = gameStates.lost;
-        window.alert(`Все пропало!\n (слово было: ${keyWord.toUpperCase()})`);
+
+        // Update statistics
+        statistics.gamesPlayed++;
+        statistics.currentStreak = 0;
+        statistics.lastPlayedDate = new Date().toDateString();
+        saveStatistics();
+
+        showGameEndModal(false);
     }
 
+    function generateShareText(won) {
+        const emojiMap = {
+            [letterStates.absent]: '⬛',
+            [letterStates.present]: '🟨',
+            [letterStates.correct]: '🟩'
+        };
 
+        let shareText = `Вордл мол ${won ? guessedWordsArray.length : 'X'}/6\n\n`;
 
-    // ==============================================
-    // square behavior
-    // ==============================================
+        guessedStateArray.forEach(row => {
+            shareText += row.map(state => emojiMap[state]).join('') + '\n';
+        });
+
+        return shareText;
+    }
+
+    function showGameEndModal(won) {
+        const modal = document.getElementById('overlay');
+        const modalTitle = document.querySelector('.modal-title');
+        modalTitle.textContent = won ? 'Победа!' : `Слово было: ${keyWord.toUpperCase()}`;
+        showStatistics();
+    }
 
     function updateCurrentWord(letter) {
-
         if (currentWordArray && currentWordArray.length < 5) {
             currentWordArray.push(letter);
-
             const index = guessedWordsArray.length * 5 + currentWordArray.length
-
             const nextSquareElement = document.getElementById(String(index));
-
             nextSquareElement.style.borderColor = colorFilled;
             animateCSS(nextSquareElement, 'pulse');
-
             nextSquareElement.textContent = letter;
         }
     }
@@ -430,13 +488,11 @@ document.addEventListener("DOMContentLoaded", () => {
         currentWordArray.forEach((letter, index) => {
             const squareId = guessedWordsArray.length * 5 + index + 1;
             const squareElement = document.getElementById(String(squareId));
-            // squareElement.classList.add("animate__headShake");
             animateCSS(squareElement, 'headShake');
         })
     }
 
     function revealSquare(id, color, letter = null) {
-        // const squareId = (guessedWordsArray.length - 1) * 5 + index + 1;
         const squareElement = document.getElementById(String(id));
         animateCSS(squareElement, 'flipInX');
         squareElement.style.background = color;
@@ -453,14 +509,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const animateCSS = (node, animation, prefix = 'animate__') =>
-        // We create a Promise and return it
         new Promise((resolve, reject) => {
             const animationName = `${prefix}${animation}`;
-            // const node = document.querySelector(element);
-
             node.classList.add(`${prefix}animated`, animationName);
 
-            // When the animation ends, we clean the classes and resolve the Promise
             function handleAnimationEnd(event) {
                 event.stopPropagation();
                 node.classList.remove(`${prefix}animated`, animationName);
@@ -472,10 +524,20 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
 
+    function saveStatistics() {
+        try {
+            localStorage.setItem('wordleStats', JSON.stringify(statistics));
+        } catch { }
+    }
 
-    // ==============================================
-    // save load
-    // ==============================================
+    function loadStatistics() {
+        try {
+            const savedStats = localStorage.getItem('wordleStats');
+            if (savedStats) {
+                statistics = JSON.parse(savedStats);
+            }
+        } catch { }
+    }
 
     function restoreState(data) {
         currentWordArray = [];
@@ -493,18 +555,18 @@ document.addEventListener("DOMContentLoaded", () => {
             })
         })
         updateKeyboard();
-    };
+    }
 
     function loadGame() {
         let data;
         try {
             data = JSON.parse(localStorage.getItem('data'));
-        } catch {}
+        } catch { }
 
         if (data != null && data.keyWord === keyWord) {
             restoreState(data);
         }
-    };
+    }
 
     function saveGame() {
         let guessedKeysMapArray = [...guessedKeysMap]
@@ -517,6 +579,6 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         try {
             localStorage.setItem('data', data)
-        } catch {}
-    };
-})
+        } catch { }
+    }
+});
