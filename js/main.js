@@ -181,14 +181,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 ${showShare ? `
                     <div class="share-section">
                         <div class="share-buttons">
+                            <button onclick="(function(){
+                                const text = \`${generateShareText(gameCurrentState === gameStates.won).replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`;
+                                navigator.clipboard.writeText(text).then(() => alert('Скопировано в буфер обмена'));
+                            })()">
+                                Копировать результат
+                            </button>
                             <button onclick="window.open('https://t.me/share/url?url=&text=${encodeURIComponent(generateShareText(gameCurrentState === gameStates.won))}')">
                                 Telegram
                             </button>
                             <button onclick="window.open('https://api.whatsapp.com/send?text=${encodeURIComponent(generateShareText(gameCurrentState === gameStates.won))}')">
                                 WhatsApp
-                            </button>
-                            <button onclick="navigator.clipboard.writeText('${generateShareText(gameCurrentState === gameStates.won)}').then(() => alert('Скопировано!'))">
-                                Копировать
                             </button>
                         </div>
                     </div>
