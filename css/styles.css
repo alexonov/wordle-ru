@@ -116,7 +116,6 @@ body {
 
 header {
     border-bottom: 1px solid rgb(58, 58, 60);
-<<<<<<< HEAD
     padding-right: 15px;
     padding-left: 15px;
 }
@@ -126,12 +125,6 @@ header {
     color: rgb(128, 131, 132);
     font-size: 1.5rem;
     cursor: pointer;
-=======
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: gainsboro;
->>>>>>> main
 }
 
 .title {
@@ -258,7 +251,6 @@ header {
 
 .fa {
     color: gainsboro;
-<<<<<<< HEAD
 }
 
 /* Statistics */
@@ -371,11 +363,4 @@ header {
 
 .modal.active {
     transform: scale(1);
-=======
-    font-size: 25px !important;
-}
-
-.fa:hover {
-    cursor: pointer;
->>>>>>> main
 }
