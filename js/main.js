@@ -46,11 +46,102 @@ document.addEventListener("DOMContentLoaded", () => {
         gamesWon: 0,
         currentStreak: 0,
         maxStreak: 0,
-        lastPlayedDate: null,
-        guessDistribution: {
-            1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0
-        }
+        guesses: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }
     };
+
+
+    function showStatsModal() {
+        const overlay = document.getElementById("overlay");
+        const modal = document.getElementById("stats-modal");
+        overlay.classList.add("active");
+        modal.classList.add("active");
+        updateStatisticsDisplay();
+    }
+
+    function hideStatsModal() {
+        const overlay = document.getElementById("overlay");
+        const modal = document.getElementById("stats-modal");
+        overlay.classList.remove("active");
+        modal.classList.remove("active");
+    }
+
+    function updateStatisticsDisplay() {
+        const winPercentage = statistics.gamesPlayed > 0
+            ? Math.round((statistics.gamesWon / statistics.gamesPlayed) * 100)
+            : 0;
+
+        document.querySelectorAll('.statistic')[0].textContent = statistics.gamesPlayed;
+        document.querySelectorAll('.statistic')[1].textContent = winPercentage;
+        document.querySelectorAll('.statistic')[2].textContent = statistics.currentStreak;
+        document.querySelectorAll('.statistic')[3].textContent = statistics.maxStreak;
+
+        // Update guess distribution
+        const maxGuesses = Math.max(...Object.values(statistics.guesses));
+        Object.entries(statistics.guesses).forEach(([guess, count]) => {
+            const bar = document.querySelector(`.graph-container:nth-child(${guess}) .graph-bar`);
+            const numGuesses = document.querySelector(`.graph-container:nth-child(${guess}) .num-guesses`);
+            const percentage = maxGuesses > 0 ? (count / maxGuesses) * 100 : 0;
+
+            bar.style.width = `${percentage}%`;
+            numGuesses.textContent = count;
+
+            // Highlight current game's guess count
+            if (gameCurrentState !== gameStates.progress &&
+                guessedWordsArray.length === parseInt(guess)) {
+                bar.classList.add('highlight');
+            } else {
+                bar.classList.remove('highlight');
+            }
+        });
+    }
+
+    function generateShareText() {
+        const date = new Date();
+        const dayNumber = Math.floor((date - new Date(2022, 0, 1)) / (1000 * 60 * 60 * 24));
+        let shareText = `Вордл мол ${dayNumber} ${guessedWordsArray.length}/6\n\n`;
+
+        guessedStateArray.forEach(states => {
+            states.forEach(state => {
+                switch (state) {
+                    case letterStates.correct:
+                        shareText += '🟩';
+                        break;
+                    case letterStates.present:
+                        shareText += '🟨';
+                        break;
+                    case letterStates.absent:
+                        shareText += '⬛';
+                        break;
+                }
+            });
+            shareText += '\n';
+        });
+
+        return shareText;
+    }
+
+    async function shareResult() {
+        const shareText = generateShareText();
+
+        if (navigator.share && /mobile|android|iphone/i.test(navigator.userAgent)) {
+            try {
+                await navigator.share({
+                    text: shareText
+                });
+            } catch (err) {
+                console.error('Error sharing:', err);
+            }
+        } else {
+            navigator.clipboard.writeText(shareText).then(() => {
+                const shareButton = document.getElementById('share-button');
+                const originalText = shareButton.innerHTML;
+                shareButton.innerHTML = '<i class="fa fa-check"></i> СКОПИРОВАНО';
+                setTimeout(() => {
+                    shareButton.innerHTML = originalText;
+                }, 2000);
+            });
+        }
+    }
 
     const createScene = async () => {
         guessedWordsArray = [];
@@ -95,6 +186,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function syncButtons() {
         const btnResult = document.getElementById("result");
         const btnDict = document.getElementById("dict");
+        const btnStats = document.getElementById("dict");
 
         // Dictionary button is always clickable
         btnDict.style.pointerEvents = 'all';
@@ -102,15 +194,18 @@ document.addEventListener("DOMContentLoaded", () => {
         // Results button only clickable after game ends
         if (gameCurrentState === gameStates.progress) {
             btnResult.style.pointerEvents = 'none';
+            btnDict.style.pointerEvents = 'none';
         } else {
             btnResult.style.pointerEvents = 'all';
+            btnDict.style.pointerEvents = 'all';
         }
     }
 
     function initButtons() {
         const btnResult = document.getElementById("result");
         const btnDict = document.getElementById("dict");
-        const closeButtons = document.querySelectorAll('.close-button');
+        const btnShare = document.getElementById("share-button");
+        const closeButtons = document.querySelectorAll(".close-button");
 
         btnResult.addEventListener("click", function () {
             if (spoilersShown) {
@@ -120,87 +215,24 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
+        btnDict.addEventListener("click", function () {
+            showStatsModal();
+        });
+
+        btnShare.addEventListener("click", shareResult);
+
         closeButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                document.getElementById('overlay').style.display = 'none';
+            button.addEventListener("click", () => {
+                hideStatsModal();
             });
         });
 
-        btnDict.addEventListener("click", () => {
-            showStatistics();
+        // Close modal when clicking outside
+        document.getElementById("overlay").addEventListener("click", (e) => {
+            if (e.target.id === "overlay") {
+                hideStatsModal();
+            }
         });
-    }
-
-    function showStatistics() {
-        const modal = document.getElementById('overlay');
-        const modalTitle = document.querySelector('.modal-title');
-        const modalBody = document.querySelector('.modal-body');
-
-        modalTitle.textContent = 'Статистика';
-        const showShare = gameCurrentState !== gameStates.progress;
-
-        const winRate = Math.round((statistics.gamesWon / statistics.gamesPlayed) * 100) || 0;
-        const maxGuesses = Math.max(...Object.values(statistics.guessDistribution));
-
-        let statsHtml = `
-            <div class="statistics">
-                <div class="stat-row">
-                    <div class="stat-item">
-                        <div class="stat-number">${statistics.gamesPlayed}</div>
-                        <div class="stat-label">Сыграно</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${winRate}%</div>
-                        <div class="stat-label">Побед</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${statistics.currentStreak}</div>
-                        <div class="stat-label">Серия</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${statistics.maxStreak}</div>
-                        <div class="stat-label">Макс. серия</div>
-                    </div>
-                </div>
-                <div class="guess-distribution">
-                    <h3>Распределение попыток</h3>
-                    <div class="graph-container">
-                        ${Object.entries(statistics.guessDistribution).map(([guess, count]) => {
-            const percentage = maxGuesses > 0 ? Math.round((count / maxGuesses) * 100) : 0;
-            return `
-                                <div class="graph-row">
-                                    <div class="guess-label">${guess}</div>
-                                    <div class="graph-bar" style="width: ${percentage}%">
-                                        <span class="num-guesses">${count}</span>
-                                    </div>
-                                </div>
-                            `;
-        }).join('')}
-                    </div>
-                </div>
-                ${showShare ? `
-                    <div class="share-section">
-                        <div class="share-buttons">
-                            <button onclick="(function(){
-                                const text = \`${generateShareText(gameCurrentState === gameStates.won).replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`;
-                                navigator.clipboard.writeText(text).then(() => alert('Скопировано в буфер обмена'));
-                            })()">
-                                Копировать результат
-                            </button>
-                            <button onclick="window.open('https://t.me/share/url?url=&text=${encodeURIComponent(generateShareText(gameCurrentState === gameStates.won))}')">
-                                Telegram
-                            </button>
-                            <button onclick="window.open('https://api.whatsapp.com/send?text=${encodeURIComponent(generateShareText(gameCurrentState === gameStates.won))}')">
-                                WhatsApp
-                            </button>
-                        </div>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-
-        modalBody.innerHTML = statsHtml;
-        modal.style.display = 'flex';
     }
 
     function hideSpoilers() {
@@ -399,6 +431,25 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // ==============================================
+    // game state
+    // ==============================================
+
+    function updateStatistics(won) {
+        statistics.gamesPlayed++;
+
+        if (won) {
+            statistics.gamesWon++;
+            statistics.currentStreak++;
+            statistics.maxStreak = Math.max(statistics.currentStreak, statistics.maxStreak);
+            statistics.guesses[guessedWordsArray.length]++;
+        } else {
+            statistics.currentStreak = 0;
+        }
+
+        localStorage.setItem('statistics', JSON.stringify(statistics));
+    }
+
     function gameWon() {
         let bounceInterval = 100;
         gameCurrentState = gameStates.won;
@@ -427,20 +478,16 @@ document.addEventListener("DOMContentLoaded", () => {
         chain = chain.then(() => wait(1000))
             .then(() => {
                 hideSpoilers();
-                showGameEndModal(true);
+                updateStatistics(true);
+                showStatsModal();
             });
     }
 
     function gameLost() {
         gameCurrentState = gameStates.lost;
-
-        // Update statistics
-        statistics.gamesPlayed++;
-        statistics.currentStreak = 0;
-        statistics.lastPlayedDate = new Date().toDateString();
-        saveStatistics();
-
-        showGameEndModal(false);
+        updateStatistics(false);
+        showStatsModal();
+        window.alert(`Все пропало!\n (слово было: ${keyWord.toUpperCase()})`);
     }
 
     function generateShareText(won) {
@@ -564,6 +611,10 @@ document.addEventListener("DOMContentLoaded", () => {
         let data;
         try {
             data = JSON.parse(localStorage.getItem('data'));
+            const savedStats = JSON.parse(localStorage.getItem('statistics'));
+            if (savedStats) {
+                statistics = savedStats;
+            }
         } catch { }
 
         if (data != null && data.keyWord === keyWord) {
@@ -583,5 +634,5 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             localStorage.setItem('data', data)
         } catch { }
-    }
-});
+    };
+})
