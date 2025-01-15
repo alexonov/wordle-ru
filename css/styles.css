@@ -40,9 +40,9 @@ header {
 
 #result,
 #dict {
-  color: rgb(128, 131, 132);
-  font-size: 1.5rem;
-  cursor: pointer;
+    color: rgb(128, 131, 132);
+    font-size: 1.5rem;
+    cursor: pointer;
 }
 
 .title {
@@ -205,4 +205,116 @@ header {
     font-size: 1.25rem;
     font-weight: normal;
     color: gainsboro;
+}
+
+/* Statistics */
+.statistics {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+}
+
+.statistic-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 5px;
+}
+
+.statistic {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.label {
+    font-size: 0.8rem;
+    color: rgb(147, 147, 147);
+    text-align: center;
+}
+
+.modal-body h1 {
+    font-size: 1rem;
+    text-align: center;
+    margin: 15px 0;
+    font-weight: bold;
+}
+
+/* Guess Distribution */
+.guess-distribution {
+    margin: 5px 0 20px;
+}
+
+.graph-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+.guess {
+    font-weight: bold;
+    min-width: 20px;
+}
+
+.graph {
+    width: 100%;
+    height: 20px;
+    padding-left: 4px;
+}
+
+.graph-bar {
+    height: 100%;
+    background-color: rgb(58, 58, 60);
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+    font-size: 0.8rem;
+    transition: width 0.4s ease-in-out;
+}
+
+.graph-bar.highlight {
+    background-color: rgb(83, 141, 78);
+}
+
+.num-guesses {
+    font-weight: bold;
+    color: white;
+}
+
+/* Share */
+.share-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.share-button {
+    background-color: rgb(83, 141, 78);
+    color: white;
+    font-family: inherit;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.share-button:hover {
+    opacity: 0.9;
+}
+
+.share-button .fa {
+    font-size: 1.2rem;
+}
+
+.modal.active {
+    transform: scale(1);
 }
